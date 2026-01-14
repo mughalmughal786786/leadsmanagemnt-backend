@@ -170,6 +170,21 @@ const getAdminDashboard = async (req, res) => {
       { $sort: { _id: 1 } }
     ]);
 
+    // Monthly revenue for last 12 months
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+
+    const monthlyRevenue = await Payment.aggregate([
+      { $match: { createdAt: { $gte: twelveMonthsAgo }, status: 'Completed' } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+          total: { $sum: '$amount' }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
     res.json({
       success: true,
       data: {
@@ -192,7 +207,8 @@ const getAdminDashboard = async (req, res) => {
         dailyStats: {
           leads: dailyLeads,
           revenue: dailyRevenue
-        }
+        },
+        monthlyRevenue
       }
     });
   } catch (error) {
